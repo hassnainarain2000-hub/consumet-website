@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consumet API - Admin Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #e6edf3; }
+    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: #161b22; border-right: 1px solid #30363d; padding: 1.5rem 0; overflow-y: auto; }
+    .sidebar h2 { padding: 0 1.5rem; margin-bottom: 1.5rem; font-size: 1.1rem; color: #58a6ff; }
+    .sidebar a { display: block; padding: 0.75rem 1.5rem; color: #8b949e; text-decoration: none; transition: all 0.15s; }
+    .sidebar a:hover, .sidebar a.active { background: #1f6feb22; color: #58a6ff; border-right: 3px solid #58a6ff; }
+    .main { margin-left: 240px; padding: 2rem; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .header h1 { font-size: 1.5rem; }
+    .badge { padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .badge-green { background: #238636; color: #fff; }
+    .badge-red { background: #da3633; color: #fff; }
+    .badge-yellow { background: #9e6a03; color: #fff; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; }
+    .stat-card h3 { color: #8b949e; font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; }
+    .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .panel h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.75rem; border-bottom: 1px solid #30363d; }
+    th { color: #8b949e; font-size: 0.85rem; }
+    .provider-row:hover { background: #1f6feb11; }
+    .test-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .test-form input { flex: 1; padding: 0.5rem 1rem; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-family: monospace; }
+    .test-form button { padding: 0.5rem 1rem; background: #238636; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .test-form button:hover { background: #2ea043; }
+    .result-box { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 1rem; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all; }
+    .loading { color: #8b949e; }
+    .error { color: #f85149; }
+    .success { color: #3fb950; }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="sidebar">
+    <h2>Consumet Admin</h2>
+    <a href="#overview" class="active" onclick="showSection('overview')">Overview</a>
+    <a href="#providers" onclick="showSection('providers')">Providers</a>
+    <a href="#tester" onclick="showSection('tester')">API Tester</a>
+    <a href="#server" onclick="showSection('server')">Server Info</a>
+    <a href="/" target="_blank">Back to Site</a>
+  </nav>
+
+  <div class="main">
+    <div id="overview-section" class="section">
+      <div class="header">
+        <h1>Dashboard Overview</h1>
+        <span class="badge badge-green" id="statusBadge">Checking...</span>
+      </div>
+      <div class="stats">
+        <div class="stat-card"><h3>Server Status</h3><div class="value" id="serverStatus">-</div></div>
+        <div class="stat-card"><h3>Uptime</h3><div class="value" id="uptime">-</div></div>
+        <div class="stat-card"><h3>Memory Used</h3><div class="value" id="memory">-</div></div>
+        <div class="stat-card"><h3>Redis</h3><div class="value" id="redisStatus">-</div></div>
+      </div>
+      <div class="panel">
+        <h2>Quick Test</h2>
+        <div class="test-form">
+          <input type="text" id="quickTestUrl" placeholder="/meta/anilist/info/21" value="/meta/anilist/info/21">
+          <button onclick="quickTest()">Test</button>
+        </div>
+        <div class="result-box" id="quickResult">Click "Test" to send a request...</div>
+      </div>
+    </div>
+
+    <div id="providers-section" class="section" style="display:none">
+      <div class="header">
+        <h1>Provider Status</h1>
+        <button onclick="refreshProviders()" style="padding:0.5rem 1rem;background:#1f6feb;color:#fff;border:none;border-radius:6px;cursor:pointer">Refresh</button>
+      </div>
+      <div class="panel">
+        <table>
+          <thead><tr><th>Type</th><th>Provider</th><th>Status</th></tr></thead>
+          <tbody id="providerTable"><tr><td colspan="3" class="loading">Loading providers...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tester-section" class="section" style="display:none">
+      <div class="header"><h1>API Endpoint Tester</h1></div>
+      <div class="panel">
+        <div class="test-form">
+          <select id="methodSelect" style="padding:0.5rem;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3">
+            <option>GET</option>
+          </select>
+          <input type="text" id="testUrl" placeholder="/meta/anilist/trending" value="/meta/anilist/trending">
+          <button onclick="testEndpoint()">Send</button>
+        </div>
+        <div class="result-box" id="testResult">Enter an endpoint and click "Send"...</div>
+      </div>
+    </div>
+
+    <div id="server-section" class="section" style="display:none">
+      <div class="header"><h1>Server Information</h1></div>
+      <div class="panel">
+        <h2>Environment</h2>
+        <table>
+          <tbody id="envTable"><tr><td colspan="2" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h2>Routes</h2>
+        <div class="result-box" id="routesList">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = window.location.origin;
+
+    function showSection(name) {
+      document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+      document.getElementById(name + '-section').style.display = 'block';
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      event.target.classList.add('active');
+      if (name === 'providers') refreshProviders();
+      if (name === 'server') loadServerInfo();
+    }
+
+    async function checkHealth() {
+      try {
+        const res = await fetch(API + '/health');
+        const data = await res.json();
+        document.getElementById('statusBadge').textContent = 'Online';
+        document.getElementById('statusBadge').className = 'badge badge-green';
+        document.getElementById('serverStatus').textContent = data.status;
+        document.getElementById('uptime').textContent = formatUptime(data.uptime);
+        document.getElementById('memory').textContent = formatBytes(data.memory.heapUsed);
+        document.getElementById('redisStatus').textContent = 'Check .env';
+      } catch {
+        document.getElementById('statusBadge').textContent = 'Offline';
+        document.getElementById('statusBadge').className = 'badge badge-red';
+        document.getElementById('serverStatus').textContent = 'Down';
+        document.getElementById('uptime').textContent = '-';
+        document.getElementById('memory').textContent = '-';
+      }
+    }
+
+    function formatUptime(seconds) {
+      const d = Math.floor(seconds / 86400);
+      const h = Math.floor((seconds % 86400) / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      if (d > 0) return d + 'd ' + h + 'h';
+      if (h > 0) return h + 'h ' + m + 'm';
+      return Math.floor(seconds) + 's';
+    }
+
+    function formatBytes(bytes) {
+      return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    async function quickTest() {
+      const url = document.getElementById('quickTestUrl').value;
+      const box = document.getElementById('quickResult');
+      box.className = 'result-box loading';
+      box.textContent = 'Sending request to ' + url + '...';
+      try {
+        const start = Date.now();
+        const res = await fetch(API + url);
+        const data = await res.json();
+        const ms = Date.now() - start;
+        box.className = 'result-box success';
+        box.textContent = 'Status: ' + res.status + ' | Time: ' + ms + 'ms\n\n' + JSON.stringify(data, null, 2);
+      } catch (err) {
+        box.className = 'result-box error';
+        box.textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function refreshProviders() {
+      const tbody = document.getElementById('providerTable');
+      tbody.innerHTML = '<tr><td colspan="3" class="loading">Fetching providers...</td></tr>';
+      try {
+        const res = await fetch(API + '/utils/providers');
+        const data = await res.json();
+        let html = '';
+        if (data.anime) data.anime.forEach(p => { html += '<tr class="provider-row"><td>Anime</td><td>' + p + '</td><td><span class="badge badge-green">Active</span></td></tr>'; });
+        if (data.manga) data.manga.forEach(p => { html += '<tr class="provider-row"><td>Manga</td><td>' + p + '</td><td><span class="badge badge-green">Active</span></td></tr>'; });
+        if (data.movies) data.movies.forEach(p => { html += '<tr class="provider-row"><td>Movies</td><td>' + p + '</td><td><span class="badge badge-green">Active</span></td></tr>'; });
+        if (!html) html = '<tr><td colspan="3">No providers found</td></tr>';
+        tbody.innerHTML = html;
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="3" class="error">Failed to load: ' + err.message + '</td></tr>';
+      }
+    }
+
+    async function testEndpoint() {
+      const url = document.getElementById('testUrl').value;
+      const box = document.getElementById('testResult');
+      box.className = 'result-box loading';
+      box.textContent = 'Sending request...';
+      try {
+        const start = Date.now();
+        const res = await fetch(API + url);
+        const text = await res.text();
+        const ms = Date.now() - start;
+        let formatted = text;
+        try { formatted = JSON.stringify(JSON.parse(text), null, 2); } catch {}
+        box.className = 'result-box ' + (res.ok ? 'success' : 'error');
+        box.textContent = 'Status: ' + res.status + ' | Time: ' + ms + 'ms | Size: ' + (text.length / 1024).toFixed(1) + 'KB\n\n' + formatted;
+      } catch (err) {
+        box.className = 'result-box error';
+        box.textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function loadServerInfo() {
+      const routes = [
+        '/books', '/anime', '/manga', '/comics', '/light-novels',
+        '/movies', '/meta', '/news', '/utils', '/swagger', '/admin', '/docs', '/health'
+      ];
+      let html = '';
+      for (const r of routes) {
+        try {
+          const res = await fetch(API + r);
+          html += r.padEnd(20) + (res.ok ? 'OK (' + res.status + ')' : 'FAIL (' + res.status + ')') + '\n';
+        } catch {
+          html += r.padEnd(20) + 'UNREACHABLE\n';
+        }
+      }
+      document.getElementById('routesList').textContent = html;
+      document.getElementById('envTable').innerHTML = '<tr><td>PORT</td><td>' + (window.location.port || '80') + '</td></tr><tr><td>Host</td><td>' + window.location.hostname + '</td></tr><tr><td>Protocol</td><td>' + window.location.protocol + '</td></tr>';
+    }
+
+    checkHealth();
+    setInterval(checkHealth, 15000);
+  </script>
+</body>
+</html>

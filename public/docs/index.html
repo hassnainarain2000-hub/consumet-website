@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consumet API - Documentation</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #e6edf3; }
+    .layout { display: flex; }
+    .nav { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; background: #161b22; border-right: 1px solid #30363d; padding: 1.5rem 0; overflow-y: auto; }
+    .nav h2 { padding: 0 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; color: #58a6ff; }
+    .nav-group { margin-bottom: 1rem; }
+    .nav-group h3 { padding: 0.5rem 1.5rem; color: #8b949e; font-size: 0.8rem; text-transform: uppercase; }
+    .nav a { display: block; padding: 0.4rem 1.5rem; color: #c9d1d9; text-decoration: none; font-size: 0.85rem; }
+    .nav a:hover { background: #1f6feb22; color: #58a6ff; }
+    .content { margin-left: 260px; padding: 2rem 3rem; max-width: 900px; }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #8b949e; margin-bottom: 2rem; }
+    h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; padding-top: 1rem; border-top: 1px solid #30363d; }
+    h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+    .endpoint-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+    .endpoint-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .method { padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 700; font-size: 0.75rem; }
+    .method-get { background: #238636; color: #fff; }
+    .path { font-family: monospace; font-size: 0.95rem; color: #a5d6ff; }
+    .desc { color: #8b949e; font-size: 0.9rem; margin-bottom: 0.75rem; }
+    .params { margin-top: 0.5rem; }
+    .params th, .params td { text-align: left; padding: 0.4rem 0.75rem; border-bottom: 1px solid #30363d; font-size: 0.85rem; }
+    .params th { color: #8b949e; }
+    .params code { color: #a5d6ff; background: #0d1117; padding: 0.1rem 0.4rem; border-radius: 3px; }
+    pre { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 1rem; overflow-x: auto; font-size: 0.85rem; margin-top: 0.75rem; }
+    code { font-family: 'SF Mono', 'Fira Code', monospace; }
+    .tag { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem; }
+    .tag-required { background: #da3633; color: #fff; }
+    .tag-optional { background: #30363d; color: #8b949e; }
+    @media (max-width: 768px) { .nav { display: none; } .content { margin-left: 0; padding: 1rem; } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="nav">
+      <h2>Consumet API</h2>
+      <div class="nav-group"><h3>Meta</h3><a href="#anilist">AniList</a><a href="#anilist-manga">AniList Manga</a><a href="#mal">MyAnimeList</a><a href="#tmdb">TMDB</a></div>
+      <div class="nav-group"><h3>Anime</h3><a href="#anime-providers">Providers</a></div>
+      <div class="nav-group"><h3>Movies</h3><a href="#movies-providers">FlixHQ + More</a></div>
+      <div class="nav-group"><h3>Manga</h3><a href="#manga-providers">MangaDex + More</a></div>
+      <div class="nav-group"><h3>Utility</h3><a href="#providers-list">Providers List</a></div>
+      <div style="padding:1rem 1.5rem"><a href="/admin" style="color:#58a6ff;text-decoration:none;font-size:0.85rem">Admin Dashboard</a></div>
+    </nav>
+
+    <div class="content">
+      <h1>Consumet API Documentation</h1>
+      <p class="subtitle">Self-hosted API for Anime, Movies, Manga, Books & more</p>
+
+      <h2 id="anilist">AniList Meta</h2>
+      <p class="desc">Search, browse, and stream anime via AniList + AniKoto provider.</p>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/meta/anilist/search/:query</span></div>
+        <p class="desc">Search anime by query</p>
+        <table class="params"><tr><th>Param</th><th>Type</th><th>Description</th></tr><tr><td><code>:query</code> <span class="tag-required">required</span></td><td>string</td><td>Search query</td></tr><tr><td><code>?page</code> <span class="tag-optional">optional</span></td><td>number</td><td>Page number (default: 1)</td></tr><tr><td><code>?perPage</code> <span class="tag-optional">optional</span></td><td>number</td><td>Results per page (default: 10)</td></tr></table>
+        <pre><code>curl "https://your-domain.com/meta/anilist/search/naruto?page=1&perPage=5"</code></pre>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/meta/anilist/info/:id</span></div>
+        <p class="desc">Get anime info with episode list</p>
+        <table class="params"><tr><th>Param</th><th>Type</th><th>Description</th></tr><tr><td><code>:id</code> <span class="tag-required">required</span></td><td>number</td><td>AniList anime ID</td></tr><tr><td><code>?dub</code> <span class="tag-optional">optional</span></td><td>boolean</td><td>Prefer dubbed episodes</td></tr><tr><td><code>?provider</code> <span class="tag-optional">optional</span></td><td>string</td><td>Provider name (default: anikoto)</td></tr></table>
+        <pre><code>curl "https://your-domain.com/meta/anilist/info/21"</code></pre>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/meta/anilist/watch/:episodeId</span></div>
+        <p class="desc">Get streaming sources for an episode</p>
+        <table class="params"><tr><th>Param</th><th>Type</th><th>Description</th></tr><tr><td><code>:episodeId</code> <span class="tag-required">required</span></td><td>string</td><td>Episode ID from info endpoint</td></tr><tr><td><code>?provider</code> <span class="tag-optional">optional</span></td><td>string</td><td>Provider name</td></tr></table>
+        <pre><code>curl "https://your-domain.com/meta/anilist/watch/21-1"</code></pre>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/meta/anilist/trending</span></div>
+        <p class="desc">Get trending anime (cached 1 hour)</p>
+        <pre><code>curl "https://your-domain.com/meta/anilist/trending"</code></pre>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/meta/anilist/popular</span></div>
+        <p class="desc">Get popular anime (cached 1 hour)</p>
+        <pre><code>curl "https://your-domain.com/meta/anilist/popular"</code></pre>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/meta/anilist/advanced-search</span></div>
+        <p class="desc">Advanced search with filters</p>
+        <table class="params"><tr><th>Param</th><th>Type</th></tr><tr><td><code>?query</code></td><td>string</td></tr><tr><td><code>?type</code></td><td>ANIME | MANGA</td></tr><tr><td><code>?genres</code></td><td>string (comma-sep)</td></tr><tr><td><code>?format</code></td><td>TV | MOVIE | OVA | etc</td></tr><tr><td><code>?sort</code></td><td>TRENDING_DESC | SCORE_DESC | etc</td></tr><tr><td><code>?status</code></td><td>RELEASING | FINISHED | etc</td></tr><tr><td><code>?year</code></td><td>number</td></tr></table>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/meta/anilist/episodes/:id</span></div>
+        <p class="desc">Get episode list for an anime</p>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/meta/anilist/character/:id</span></div>
+        <p class="desc">Get character info</p>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/meta/anilist/staff/:id</span></div>
+        <p class="desc">Get staff info (cached 1 hour)</p>
+      </div>
+
+      <h2 id="anime-providers">Anime Providers</h2>
+      <p class="desc">Direct access to anime streaming providers.</p>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/anime/anikoto/:query</span></div>
+        <p class="desc">Search via AniKoto</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/anime/gogoanime/:query</span></div>
+        <p class="desc">Search via Gogoanime</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/anime/animeworld/:query</span></div>
+        <p class="desc">Search via AnimeWorld</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/anime/reanime/:query</span></div>
+        <p class="desc">Search via ReAnime</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/anime/miruro/:query</span></div>
+        <p class="desc">Search via Miruro</p>
+      </div>
+
+      <h2 id="movies-providers">Movies & TV Providers</h2>
+      <p class="desc">Stream movies and TV shows.</p>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/movies/flixhq/:query</span></div>
+        <p class="desc">Search movies/TV via FlixHQ</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/movies/flixhq/info?id=:id</span></div>
+        <p class="desc">Get movie/TV info</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/movies/flixhq/watch?episodeId=:id&mediaId=:id</span></div>
+        <p class="desc">Get streaming sources</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/movies/goku/:query</span></div>
+        <p class="desc">Search via Goku Movies</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/movies/sflix/:query</span></div>
+        <p class="desc">Search via SFlix</p>
+      </div>
+
+      <h2 id="manga-providers">Manga Providers</h2>
+      <p class="desc">Read manga from multiple sources.</p>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/manga/mangadex/:query</span></div>
+        <p class="desc">Search manga via MangaDex</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/manga/mangadex/info/:id</span></div>
+        <p class="desc">Get manga info</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/manga/mangapill/:query</span></div>
+        <p class="desc">Search via MangaPill</p>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/manga/mangakakalot/:query</span></div>
+        <p class="desc">Search via MangaKakalot</p>
+      </div>
+
+      <h2 id="providers-list">Utility Endpoints</h2>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/utils/providers</span></div>
+        <p class="desc">List all available providers by type</p>
+        <pre><code>curl "https://your-domain.com/utils/providers"</code></pre>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/health</span></div>
+        <p class="desc">Server health check</p>
+        <pre><code>curl "https://your-domain.com/health"</code></pre>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="path">/swagger</span></div>
+        <p class="desc">Swagger UI (auto-generated API docs)</p>
+      </div>
+
+      <h2>Notes</h2>
+      <ul style="color:#8b949e; line-height:2; margin-left:1rem">
+        <li>All endpoints are GET only</li>
+        <li>Responses are JSON</li>
+        <li>Redis caching reduces response times (1 hour default TTL)</li>
+        <li>If Redis is unavailable, caching is disabled but API still works</li>
+        <li>CORS is enabled for all origins</li>
+        <li>Replace <code>your-domain.com</code> with your actual Hostinger domain</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
