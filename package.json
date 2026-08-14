@@ -1,9 +1,9 @@
 {
   "name": "consumet-website",
   "version": "1.0.0",
-  "main": "src/main.ts",
+  "main": "dist/main.js",
   "scripts": {
-    "start": "ts-node src/main.ts",
+    "start": "node dist/main.js",
     "dev": "nodemon src/main.ts",
     "build": "npm update @consumet/extensions && tsc",
     "postinstall": "npm update @consumet/extensions",
