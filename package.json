@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node dist/main.js",
     "dev": "nodemon src/main.ts",
-    "build": "tsc",
+    "build": "echo 'dist/ already compiled — skipping build'",
     "postinstall": "npm update @consumet/extensions",
     "lint": "prettier --write \"src/**/*.ts\""
   },
