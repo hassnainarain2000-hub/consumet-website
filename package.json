@@ -5,12 +5,12 @@
   "scripts": {
     "start": "node dist/main.js",
     "dev": "nodemon src/main.ts",
-    "build": "npm update @consumet/extensions && tsc",
+    "build": "tsc",
     "postinstall": "npm update @consumet/extensions",
     "lint": "prettier --write \"src/**/*.ts\""
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@consumet/extensions": "git+https://github.com/solo12345689/consumet.ts.git",

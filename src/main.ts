@@ -18,6 +18,7 @@ import movies from './routes/movies';
 import meta from './routes/meta';
 import news from './routes/news';
 import Utils from './utils';
+import { checkRateLimit } from './utils/rateLimit';
 
 export const redis =
   process.env.REDIS_HOST &&
@@ -41,8 +42,26 @@ async function start() {
   const HOST = process.env.HOST || '0.0.0.0';
 
   await fastify.register(FastifyCors, {
-    origin: '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      // Allow all origins for now (consumet API is public)
+      return callback(null, true);
+    },
     methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400,
+  });
+
+  // Global rate limiter: 60 requests per minute per IP
+  fastify.addHook('onRequest', async (request, reply) => {
+    const clientIp = request.ip || request.socket.remoteAddress || 'unknown';
+    const rateKey = `global:${clientIp}`;
+    const rate = checkRateLimit(rateKey, 60, 60_000);
+    if (!rate.allowed) {
+      reply.header('Retry-After', String(rate.resetIn));
+      reply.status(429).send({ message: 'Too many requests. Try again later.' });
+    }
   });
 
   await fastify.register(FastifyStatic, {

@@ -6,6 +6,7 @@ import axios from 'axios';
 import cache from '../../utils/cache';
 import { redis, REDIS_TTL } from '../../main';
 import { Redis } from 'ioredis';
+import { checkRateLimit, isSafeUrl } from '../../utils/rateLimit';
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   const anikoto = new ANIME.AniKoto();
@@ -852,6 +853,20 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     const { url, referer } = request.query as { url: string; referer?: string };
     if (!url) return reply.status(400).send({ message: 'url is required' });
 
+    // Rate limit: 30 requests per minute per IP
+    const clientIp = request.ip || request.socket.remoteAddress || 'unknown';
+    const rateKey = `m3u8:${clientIp}`;
+    const rate = checkRateLimit(rateKey, 30, 60_000);
+    if (!rate.allowed) {
+      reply.header('Retry-After', String(rate.resetIn));
+      return reply.status(429).send({ message: 'Too many requests. Try again later.' });
+    }
+
+    // Validate URL is safe to proxy (prevents SSRF)
+    if (!isSafeUrl(url)) {
+      return reply.status(400).send({ message: 'Invalid or unsafe URL' });
+    }
+
     try {
       const headers: Record<string, string> = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -866,7 +881,11 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         }
       }
 
-      const { data } = await axios.get(url, { headers });
+      const { data } = await axios.get(url, {
+        headers,
+        timeout: 10000,
+        maxContentLength: 5 * 1024 * 1024, // 5MB max
+      });
       const hostUrl = `${request.protocol}://${request.hostname}`;
       
       const lines = data.split('\n');
@@ -891,6 +910,8 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
       });
 
       reply.header('Content-Type', 'application/vnd.apple.mpegurl');
+      reply.header('Cache-Control', 'public, max-age=10');
+      reply.header('Access-Control-Allow-Origin', '*');
       reply.status(200).send(rewrittenLines.join('\n'));
     } catch (err: any) {
       reply.status(500).send({ message: err.message });
@@ -915,6 +936,20 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     const { url, referer } = request.query as { url: string; referer?: string };
     if (!url) return reply.status(400).send({ message: 'url is required' });
 
+    // Rate limit: 100 requests per minute per IP (segments are fetched frequently)
+    const clientIp = request.ip || request.socket.remoteAddress || 'unknown';
+    const rateKey = `seg:${clientIp}`;
+    const rate = checkRateLimit(rateKey, 100, 60_000);
+    if (!rate.allowed) {
+      reply.header('Retry-After', String(rate.resetIn));
+      return reply.status(429).send({ message: 'Too many requests. Try again later.' });
+    }
+
+    // Validate URL is safe to proxy (prevents SSRF)
+    if (!isSafeUrl(url)) {
+      return reply.status(400).send({ message: 'Invalid or unsafe URL' });
+    }
+
     try {
       const headers: Record<string, string> = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -932,15 +967,19 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
       const res = await axios.get(url, {
         headers,
         responseType: 'arraybuffer',
-        timeout: 15000
+        timeout: 15000,
+        maxContentLength: 20 * 1024 * 1024, // 20MB max for segments
       });
       
       let buffer = Buffer.from(res.data);
+      // Strip PNG header if present (some CDNs wrap TS segments in PNG)
       if (buffer.length > 70 && buffer.readUInt32BE(0) === 0x89504E47) {
         buffer = buffer.subarray(70);
       }
       
       reply.header('Content-Type', 'video/mp2t');
+      reply.header('Access-Control-Allow-Origin', '*');
+      reply.header('Cache-Control', 'public, max-age=86400');
       reply.status(200).send(buffer);
     } catch (err: any) {
       reply.status(500).send({ message: err.message });
