@@ -6,7 +6,7 @@ interface RateLimitEntry {
 const store = new Map<string, RateLimitEntry>();
 
 // Clean up expired entries every 5 minutes
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store.entries()) {
     if (entry.resetAt <= now) {
@@ -14,6 +14,7 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+cleanupTimer.unref();
 
 /**
  * Simple in-memory rate limiter.
@@ -51,9 +52,7 @@ export function checkRateLimit(
 export function isSafeUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    // Only allow HTTP/HTTPS
     if (!['http:', 'https:'].includes(parsed.protocol)) return false;
-    // Block internal/private IPs
     const hostname = parsed.hostname.toLowerCase();
     if (
       hostname === 'localhost' ||
@@ -61,11 +60,18 @@ export function isSafeUrl(url: string): boolean {
       hostname === '0.0.0.0' ||
       hostname.startsWith('192.168.') ||
       hostname.startsWith('10.') ||
-      hostname.startsWith('172.') ||
       hostname.endsWith('.local') ||
       hostname.endsWith('.internal')
     ) {
       return false;
+    }
+    // Block 172.16.0.0 – 172.31.255.255 (private range)
+    if (hostname.startsWith('172.')) {
+      const octets = hostname.split('.');
+      if (octets.length >= 2) {
+        const second = parseInt(octets[1] || '0', 10);
+        if (second >= 16 && second <= 31) return false;
+      }
     }
     return true;
   } catch {

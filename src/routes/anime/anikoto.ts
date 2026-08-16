@@ -881,13 +881,16 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         }
       }
 
-      const { data } = await axios.get(url, {
+      const res = await axios.get(url, {
         headers,
         timeout: 10000,
-        maxContentLength: 5 * 1024 * 1024, // 5MB max
+        maxContentLength: 5 * 1024 * 1024,
+        maxRedirects: 5,
+        responseType: 'text',
       });
-      const hostUrl = `${request.protocol}://${request.hostname}`;
+      const hostUrl = `https://${request.hostname}`;
       
+      const data: string = typeof res.data === 'string' ? res.data : Buffer.from(res.data).toString('utf-8');
       const lines = data.split('\n');
       const rewrittenLines = lines.map((line: string) => {
         const trimmed = line.trim();
@@ -914,7 +917,8 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
       reply.header('Access-Control-Allow-Origin', '*');
       reply.status(200).send(rewrittenLines.join('\n'));
     } catch (err: any) {
-      reply.status(500).send({ message: err.message });
+      console.error('[m3u8-proxy] Fetch failed:', err.message);
+      reply.status(500).send({ message: 'Proxy fetch failed' });
     }
   });
 
@@ -968,7 +972,8 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
         headers,
         responseType: 'arraybuffer',
         timeout: 15000,
-        maxContentLength: 20 * 1024 * 1024, // 20MB max for segments
+        maxContentLength: 20 * 1024 * 1024,
+        maxRedirects: 5,
       });
       
       let buffer = Buffer.from(res.data);
@@ -982,7 +987,8 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
       reply.header('Cache-Control', 'public, max-age=86400');
       reply.status(200).send(buffer);
     } catch (err: any) {
-      reply.status(500).send({ message: err.message });
+      console.error('[segment-proxy] Fetch failed:', err.message);
+      reply.status(500).send({ message: 'Segment fetch failed' });
     }
   });
 };
